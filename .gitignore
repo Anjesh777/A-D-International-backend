@@ -1,0 +1,28 @@
+# Ignore Visual Studio related
+.vs/
+*.vsidx
+
+# Ignore build outputs
+bin/
+obj/
+out/
+target/
+
+# Ignore IDE configs
+*.iml
+.idea/
+*.classpath
+*.project
+*.settings/
+*.vscode/
+
+# Ignore OS files
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log
+
+# Temporary files
+*.tmp
+*.swp
