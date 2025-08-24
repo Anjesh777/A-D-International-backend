@@ -2,7 +2,6 @@
 
 namespace A_D_International_weight_trading.Dtos.Products
 {
-
     public class UpdateProductDto
     {
         [Required]
@@ -14,8 +13,7 @@ namespace A_D_International_weight_trading.Dtos.Products
         public string Description { get; set; }
 
         [Required]
-        [StringLength(100)]
-        public string Category { get; set; }
+        public int CategoryId { get; set; } // Changed from string to int
 
         [StringLength(2000)]
         public string Specifications { get; set; }
@@ -29,5 +27,5 @@ namespace A_D_International_weight_trading.Dtos.Products
         public List<IFormFile> NewImages { get; set; } = new List<IFormFile>();
         public List<int> RemoveImageIds { get; set; } = new List<int>();
     }
-
 }
+

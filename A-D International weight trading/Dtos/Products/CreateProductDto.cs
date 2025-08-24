@@ -13,8 +13,7 @@ namespace A_D_International_weight_trading.Dtos.Products
         public string Description { get; set; }
 
         [Required]
-        [StringLength(100)]
-        public string Category { get; set; }
+        public int CategoryId { get; set; } 
 
         [StringLength(2000)]
         public string Specifications { get; set; }

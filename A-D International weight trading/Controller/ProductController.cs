@@ -11,44 +11,45 @@ namespace A_D_International_weight_trading
     [Route("api/[controller]")]
     [ApiController]
     [Authorize(Roles = "Administrator")]
-
     public class ProductController : ControllerBase
     {
-
-            private readonly AppDbContext _context;
-            private readonly ICloudinaryService _cloudinaryService;
-            private readonly ILogger<ProductController> _logger;
-
+        private readonly AppDbContext _context;
+        private readonly ICloudinaryService _cloudinaryService;
+        private readonly ILogger<ProductController> _logger;
 
         public ProductController(AppDbContext context, ICloudinaryService cloudinaryService, ILogger<ProductController> logger)
-            {
-                _context = context;
-                _cloudinaryService = cloudinaryService;
-                _logger = logger;
+        {
+            _context = context;
+            _cloudinaryService = cloudinaryService;
+            _logger = logger;
         }
 
         [HttpGet]
         [AllowAnonymous]
-
         public async Task<ActionResult<IEnumerable<ProductListDto>>> GetProducts(
             [FromQuery] string search = "",
-            [FromQuery] string category = "",
+            [FromQuery] int? categoryId = null,
             [FromQuery] string status = "",
             [FromQuery] int page = 1,
             [FromQuery] int pageSize = 10)
         {
             try
             {
-                var query = _context.Products.Include(p => p.Images).AsQueryable();
+                var query = _context.Products
+                    .Include(p => p.Images)
+                    .Include(p => p.Category)
+                    .AsQueryable();
 
                 if (!string.IsNullOrEmpty(search))
                 {
-                    query = query.Where(p => p.Name.Contains(search) || p.Description.Contains(search));
+                    query = query.Where(p => p.Name.Contains(search) ||
+                                           p.Description.Contains(search) ||
+                                           p.Category.Name.Contains(search));
                 }
 
-                if (!string.IsNullOrEmpty(category))
+                if (categoryId.HasValue)
                 {
-                    query = query.Where(p => p.Category == category);
+                    query = query.Where(p => p.CategoryId == categoryId.Value);
                 }
 
                 if (!string.IsNullOrEmpty(status))
@@ -66,7 +67,8 @@ namespace A_D_International_weight_trading
                         Id = p.Id,
                         Name = p.Name,
                         Description = p.Description,
-                        Category = p.Category,
+                        CategoryId = p.CategoryId,
+                        CategoryName = p.Category.Name,
                         Status = p.Status,
                         Standards = p.Standards,
                         CreatedAt = p.CreatedAt,
@@ -89,13 +91,13 @@ namespace A_D_International_weight_trading
 
         [HttpGet("{id}")]
         [AllowAnonymous]
-
         public async Task<ActionResult<ProductResponseDto>> GetProduct(int id)
         {
             try
             {
                 var product = await _context.Products
                     .Include(p => p.Images)
+                    .Include(p => p.Category)
                     .FirstOrDefaultAsync(p => p.Id == id);
 
                 if (product == null)
@@ -106,7 +108,8 @@ namespace A_D_International_weight_trading
                     Id = product.Id,
                     Name = product.Name,
                     Description = product.Description,
-                    Category = product.Category,
+                    CategoryId = product.CategoryId,
+                    CategoryName = product.Category.Name,
                     Specifications = product.Specifications,
                     Status = product.Status,
                     Standards = product.Standards,
@@ -129,7 +132,6 @@ namespace A_D_International_weight_trading
             }
         }
 
-
         [HttpPost]
         public async Task<ActionResult<ProductResponseDto>> CreateProduct([FromForm] CreateProductDto createDto)
         {
@@ -140,11 +142,16 @@ namespace A_D_International_weight_trading
 
             try
             {
+                // Verify category exists and is active
+                var category = await _context.Categories.FindAsync(createDto.CategoryId);
+                if (category == null || category.Status != "active")
+                    return BadRequest("Invalid or inactive category");
+
                 var product = new Product
                 {
                     Name = createDto.Name.Trim(),
                     Description = createDto.Description.Trim(),
-                    Category = createDto.Category,
+                    CategoryId = createDto.CategoryId,
                     Specifications = createDto.Specifications?.Trim(),
                     Status = createDto.Status,
                     Standards = createDto.Standards?.Trim(),
@@ -175,12 +182,18 @@ namespace A_D_International_weight_trading
 
                 await transaction.CommitAsync();
 
+                // Load the category for response
+                await _context.Entry(product)
+                    .Reference(p => p.Category)
+                    .LoadAsync();
+
                 var responseDto = new ProductResponseDto
                 {
                     Id = product.Id,
                     Name = product.Name,
                     Description = product.Description,
-                    Category = product.Category,
+                    CategoryId = product.CategoryId,
+                    CategoryName = product.Category.Name,
                     Specifications = product.Specifications,
                     Status = product.Status,
                     Standards = product.Standards,
@@ -216,14 +229,19 @@ namespace A_D_International_weight_trading
             {
                 var product = await _context.Products
                     .Include(p => p.Images)
+                    .Include(p => p.Category)
                     .FirstOrDefaultAsync(p => p.Id == id);
 
                 if (product == null)
                     return NotFound($"Product with ID {id} not found");
 
+                var category = await _context.Categories.FindAsync(updateDto.CategoryId);
+                if (category == null || category.Status != "active")
+                    return BadRequest("Invalid or inactive category");
+
                 product.Name = updateDto.Name.Trim();
                 product.Description = updateDto.Description.Trim();
-                product.Category = updateDto.Category;
+                product.CategoryId = updateDto.CategoryId;
                 product.Specifications = updateDto.Specifications?.Trim();
                 product.Status = updateDto.Status;
                 product.Standards = updateDto.Standards?.Trim();
@@ -268,6 +286,7 @@ namespace A_D_International_weight_trading
 
                 product = await _context.Products
                     .Include(p => p.Images)
+                    .Include(p => p.Category)
                     .FirstOrDefaultAsync(p => p.Id == id);
 
                 var responseDto = new ProductResponseDto
@@ -275,7 +294,8 @@ namespace A_D_International_weight_trading
                     Id = product.Id,
                     Name = product.Name,
                     Description = product.Description,
-                    Category = product.Category,
+                    CategoryId = product.CategoryId,
+                    CategoryName = product.Category.Name,
                     Specifications = product.Specifications,
                     Status = product.Status,
                     Standards = product.Standards,
@@ -333,15 +353,15 @@ namespace A_D_International_weight_trading
         }
 
         [HttpGet("categories")]
-        [AllowAnonymous] 
-        public async Task<ActionResult<IEnumerable<string>>> GetCategories()
+        [AllowAnonymous]
+        public async Task<ActionResult<IEnumerable<object>>> GetCategories()
         {
             try
             {
-                var categories = await _context.Products
-                    .Select(p => p.Category)
-                    .Distinct()
-                    .OrderBy(c => c)
+                var categories = await _context.Categories
+                    .Where(c => c.Status == "active")
+                    .Select(c => new { Id = c.Id, Name = c.Name })
+                    .OrderBy(c => c.Name)
                     .ToListAsync();
 
                 return Ok(categories);
@@ -360,7 +380,7 @@ namespace A_D_International_weight_trading
             {
                 var totalProducts = await _context.Products.CountAsync();
                 var activeProducts = await _context.Products.CountAsync(p => p.Status == "active");
-                var categories = await _context.Products.Select(p => p.Category).Distinct().CountAsync();
+                var categories = await _context.Categories.CountAsync(c => c.Status == "active");
 
                 return Ok(new
                 {

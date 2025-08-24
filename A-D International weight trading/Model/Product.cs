@@ -1,4 +1,5 @@
 ﻿using System.ComponentModel.DataAnnotations;
+using System.ComponentModel.DataAnnotations.Schema;
 
 namespace A_D_International_weight_trading.Model
 {
@@ -15,8 +16,7 @@ namespace A_D_International_weight_trading.Model
         public string Description { get; set; }
 
         [Required]
-        [StringLength(100)]
-        public string Category { get; set; }
+        public int CategoryId { get; set; } // Foreign key
 
         [StringLength(2000)]
         public string Specifications { get; set; }
@@ -29,7 +29,11 @@ namespace A_D_International_weight_trading.Model
         public string Standards { get; set; }
 
         public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
+
         public DateTime UpdatedAt { get; set; } = DateTime.UtcNow;
+
+        [ForeignKey("CategoryId")]
+        public virtual Category Category { get; set; }
 
         public virtual ICollection<ProductImage> Images { get; set; } = new List<ProductImage>();
     }
