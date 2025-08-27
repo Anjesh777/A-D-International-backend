@@ -26,12 +26,12 @@ namespace A_D_International_weight_trading
 
         [HttpGet]
         [AllowAnonymous]
-        public async Task<ActionResult<IEnumerable<ProductListDto>>> GetProducts(
-            [FromQuery] string search = "",
-            [FromQuery] int? categoryId = null,
-            [FromQuery] string status = "",
-            [FromQuery] int page = 1,
-            [FromQuery] int pageSize = 10)
+    public async Task<ActionResult<IEnumerable<ProductListDto>>> GetProducts(
+    [FromQuery] string search = "",
+    [FromQuery] int? categoryId = null,
+    [FromQuery] string status = "",
+    [FromQuery] int page = 1,
+    [FromQuery] int pageSize = 10)
         {
             try
             {
@@ -72,7 +72,14 @@ namespace A_D_International_weight_trading
                         Status = p.Status,
                         Standards = p.Standards,
                         CreatedAt = p.CreatedAt,
-                        ImageCount = p.Images.Count
+                        ImageCount = p.Images.Count,
+                        // Add the actual images
+                        Images = p.Images.Select(img => new ProductImageDto
+                        {
+                            Id = img.Id,
+                            ImageUrl = img.ImageUrl,
+                            CreatedAt = img.CreatedAt
+                        }).ToList()
                     })
                     .ToListAsync();
 

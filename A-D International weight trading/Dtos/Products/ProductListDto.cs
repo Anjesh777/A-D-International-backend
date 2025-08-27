@@ -11,5 +11,7 @@
         public string Standards { get; set; }
         public DateTime CreatedAt { get; set; }
         public int ImageCount { get; set; }
+        public List<ProductImageDto> Images { get; set; } = new List<ProductImageDto>();
+
     }
 }
