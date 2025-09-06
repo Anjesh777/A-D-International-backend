@@ -26,12 +26,13 @@ namespace A_D_International_weight_trading
 
         [HttpGet]
         [AllowAnonymous]
-    public async Task<ActionResult<IEnumerable<ProductListDto>>> GetProducts(
-    [FromQuery] string search = "",
-    [FromQuery] int? categoryId = null,
-    [FromQuery] string status = "",
-    [FromQuery] int page = 1,
-    [FromQuery] int pageSize = 10)
+        public async Task<ActionResult<IEnumerable<ProductListDto>>> GetProducts(
+            [FromQuery] string search = "",
+            [FromQuery] int? categoryId = null,
+            [FromQuery] string status = "",
+            [FromQuery] bool? isHot = null, 
+            [FromQuery] int page = 1,
+            [FromQuery] int pageSize = 10)
         {
             try
             {
@@ -57,6 +58,12 @@ namespace A_D_International_weight_trading
                     query = query.Where(p => p.Status == status);
                 }
 
+                // New filter for hot products
+                if (isHot.HasValue)
+                {
+                    query = query.Where(p => p.IsHot == isHot.Value);
+                }
+
                 var totalCount = await query.CountAsync();
                 var products = await query
                     .OrderByDescending(p => p.CreatedAt)
@@ -71,9 +78,9 @@ namespace A_D_International_weight_trading
                         CategoryName = p.Category.Name,
                         Status = p.Status,
                         Standards = p.Standards,
+                        IsHot = p.IsHot, // Include IsHot field
                         CreatedAt = p.CreatedAt,
                         ImageCount = p.Images.Count,
-                        // Add the actual images
                         Images = p.Images.Select(img => new ProductImageDto
                         {
                             Id = img.Id,
@@ -120,6 +127,7 @@ namespace A_D_International_weight_trading
                     Specifications = product.Specifications,
                     Status = product.Status,
                     Standards = product.Standards,
+                    IsHot = product.IsHot, // Include IsHot field
                     CreatedAt = product.CreatedAt,
                     UpdatedAt = product.UpdatedAt,
                     Images = product.Images.Select(img => new ProductImageDto
@@ -162,6 +170,7 @@ namespace A_D_International_weight_trading
                     Specifications = createDto.Specifications?.Trim(),
                     Status = createDto.Status,
                     Standards = createDto.Standards?.Trim(),
+                    IsHot = createDto.IsHot, // Set IsHot field
                     CreatedAt = DateTime.UtcNow,
                     UpdatedAt = DateTime.UtcNow
                 };
@@ -204,6 +213,7 @@ namespace A_D_International_weight_trading
                     Specifications = product.Specifications,
                     Status = product.Status,
                     Standards = product.Standards,
+                    IsHot = product.IsHot, // Include IsHot field
                     CreatedAt = product.CreatedAt,
                     UpdatedAt = product.UpdatedAt,
                     Images = product.Images.Select(img => new ProductImageDto
@@ -252,6 +262,7 @@ namespace A_D_International_weight_trading
                 product.Specifications = updateDto.Specifications?.Trim();
                 product.Status = updateDto.Status;
                 product.Standards = updateDto.Standards?.Trim();
+                product.IsHot = updateDto.IsHot; 
                 product.UpdatedAt = DateTime.UtcNow;
 
                 if (updateDto.RemoveImageIds?.Any() == true)
@@ -306,6 +317,7 @@ namespace A_D_International_weight_trading
                     Specifications = product.Specifications,
                     Status = product.Status,
                     Standards = product.Standards,
+                    IsHot = product.IsHot, // Include IsHot field
                     CreatedAt = product.CreatedAt,
                     UpdatedAt = product.UpdatedAt,
                     Images = product.Images.Select(img => new ProductImageDto
@@ -387,12 +399,14 @@ namespace A_D_International_weight_trading
             {
                 var totalProducts = await _context.Products.CountAsync();
                 var activeProducts = await _context.Products.CountAsync(p => p.Status == "active");
+                var hotProducts = await _context.Products.CountAsync(p => p.IsHot); // New stat for hot products
                 var categories = await _context.Categories.CountAsync(c => c.Status == "active");
 
                 return Ok(new
                 {
                     TotalProducts = totalProducts,
                     ActiveProducts = activeProducts,
+                    HotProducts = hotProducts, 
                     Categories = categories
                 });
             }
@@ -400,6 +414,58 @@ namespace A_D_International_weight_trading
             {
                 _logger.LogError(ex, "Error retrieving stats");
                 return StatusCode(500, "An error occurred while retrieving stats");
+            }
+        }
+
+        [HttpGet("hot-products")]
+        [AllowAnonymous]
+        public async Task<ActionResult<IEnumerable<ProductListDto>>> GetHotProducts(
+            [FromQuery] int page = 1,
+            [FromQuery] int pageSize = 10)
+        {
+            try
+            {
+                var query = _context.Products
+                    .Include(p => p.Images)
+                    .Include(p => p.Category)
+                    .Where(p => p.IsHot == true && p.Status == "active");
+
+                var totalCount = await query.CountAsync();
+                var products = await query
+                    .OrderByDescending(p => p.CreatedAt)
+                    .Skip((page - 1) * pageSize)
+                    .Take(pageSize)
+                    .Select(p => new ProductListDto
+                    {
+                        Id = p.Id,
+                        Name = p.Name,
+                        Description = p.Description,
+                        CategoryId = p.CategoryId,
+                        CategoryName = p.Category.Name,
+                        Status = p.Status,
+                        Standards = p.Standards,
+                        IsHot = p.IsHot,
+                        CreatedAt = p.CreatedAt,
+                        ImageCount = p.Images.Count,
+                        Images = p.Images.Select(img => new ProductImageDto
+                        {
+                            Id = img.Id,
+                            ImageUrl = img.ImageUrl,
+                            CreatedAt = img.CreatedAt
+                        }).ToList()
+                    })
+                    .ToListAsync();
+
+                Response.Headers.Add("X-Total-Count", totalCount.ToString());
+                Response.Headers.Add("X-Page", page.ToString());
+                Response.Headers.Add("X-Page-Size", pageSize.ToString());
+
+                return Ok(products);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error retrieving hot products");
+                return StatusCode(500, "An error occurred while retrieving hot products");
             }
         }
     }

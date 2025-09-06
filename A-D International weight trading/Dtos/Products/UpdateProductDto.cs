@@ -13,19 +13,21 @@ namespace A_D_International_weight_trading.Dtos.Products
         public string Description { get; set; }
 
         [Required]
-        public int CategoryId { get; set; } // Changed from string to int
+        public int CategoryId { get; set; }
 
         [StringLength(2000)]
         public string Specifications { get; set; }
 
         [StringLength(20)]
-        public string Status { get; set; }
+        public string Status { get; set; } = "active";
 
         [StringLength(500)]
         public string Standards { get; set; }
 
+        public bool IsHot { get; set; } = false; // New field for marking hot products
+
         public List<IFormFile> NewImages { get; set; } = new List<IFormFile>();
+
         public List<int> RemoveImageIds { get; set; } = new List<int>();
     }
 }
-

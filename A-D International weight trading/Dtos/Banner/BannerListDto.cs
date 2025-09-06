@@ -8,10 +8,6 @@
         public string ImageUrl { get; set; }
         public string ButtonText { get; set; }
         public string LinkType { get; set; }
-        public int? ProductId { get; set; }
-        public string? ProductName { get; set; }
-        public int? CategoryId { get; set; }
-        public string? CategoryName { get; set; }
         public string ExternalUrl { get; set; }
         public string Status { get; set; }
         public int DisplayOrder { get; set; }

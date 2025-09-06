@@ -28,6 +28,8 @@ namespace A_D_International_weight_trading.Model
         [StringLength(500)]
         public string Standards { get; set; }
 
+        public bool IsHot { get; set; } = false; // New field for hot products
+
         public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
 
         public DateTime UpdatedAt { get; set; } = DateTime.UtcNow;

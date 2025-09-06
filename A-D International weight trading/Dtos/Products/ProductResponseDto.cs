@@ -10,6 +10,7 @@
         public string Specifications { get; set; }
         public string Status { get; set; }
         public string Standards { get; set; }
+        public bool IsHot { get; set; } // New field for hot products
         public DateTime CreatedAt { get; set; }
         public DateTime UpdatedAt { get; set; }
         public List<ProductImageDto> Images { get; set; } = new List<ProductImageDto>();

@@ -9,6 +9,8 @@
         public string CategoryName { get; set; } 
         public string Status { get; set; }
         public string Standards { get; set; }
+        public bool IsHot { get; set; } 
+
         public DateTime CreatedAt { get; set; }
         public int ImageCount { get; set; }
         public List<ProductImageDto> Images { get; set; } = new List<ProductImageDto>();
