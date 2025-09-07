@@ -15,8 +15,8 @@ namespace A_D_International_weight_trading.Data
         public DbSet<Product> Products { get; set; }
         public DbSet<ProductImage> ProductImages { get; set; }
         public DbSet<Category> Categories { get; set; }
-
         public DbSet<Banner> Banners { get; set; }
+        public DbSet<MetaData> MetaData { get; set; }
 
         protected override void OnModelCreating(ModelBuilder builder)
         {
@@ -38,7 +38,7 @@ namespace A_D_International_weight_trading.Data
                 entity.HasKey(p => p.Id);
                 entity.Property(p => p.Name).IsRequired().HasMaxLength(200);
                 entity.Property(p => p.Description).IsRequired().HasMaxLength(1000);
-                entity.Property(p => p.CategoryId).IsRequired(); 
+                entity.Property(p => p.CategoryId).IsRequired();
                 entity.Property(p => p.Specifications).HasMaxLength(2000);
                 entity.Property(p => p.Status).HasMaxLength(20).HasDefaultValue("active");
                 entity.Property(p => p.Standards).HasMaxLength(500);
@@ -93,7 +93,6 @@ namespace A_D_International_weight_trading.Data
                 entity.Property(e => e.PublicId).HasMaxLength(100);
                 entity.Property(e => e.ExternalUrl).HasMaxLength(500);
 
-                // Properties with defaults
                 entity.Property(e => e.ButtonText)
                     .HasMaxLength(50)
                     .HasDefaultValue("Shop Now");
@@ -125,6 +124,61 @@ namespace A_D_International_weight_trading.Data
                 entity.HasIndex(b => b.DisplayOrder);
                 entity.HasIndex(b => new { b.StartDate, b.EndDate });
                 entity.HasIndex(b => b.LinkType);
+            });
+
+            builder.Entity<MetaData>(entity =>
+            {
+                // Primary key
+                entity.HasKey(e => e.Id);
+
+                // Required properties
+                entity.Property(e => e.CompanyName)
+                    .IsRequired()
+                    .HasMaxLength(250);
+
+                entity.Property(e => e.Address)
+                    .IsRequired()
+                    .HasMaxLength(500);
+
+                entity.Property(e => e.Phone)
+                    .IsRequired()
+                    .HasMaxLength(20);
+
+                entity.Property(e => e.Email)
+                    .IsRequired()
+                    .HasMaxLength(100);
+
+                entity.Property(e => e.Hours)
+                    .IsRequired()
+                    .HasMaxLength(200);
+
+                entity.Property(e => e.MapEmbedUrl)
+                    .IsRequired()
+                    .HasMaxLength(2000);
+
+                // Optional properties
+                entity.Property(e => e.LocationDescription)
+                    .HasMaxLength(500);
+
+                // Coordinates with precision for MySQL
+                entity.Property(e => e.Latitude)
+                    .IsRequired()
+                    .HasColumnType("decimal(10,8)"); // Precision for GPS coordinates
+
+                entity.Property(e => e.Longitude)
+                    .IsRequired()
+                    .HasColumnType("decimal(11,8)"); // Precision for GPS coordinates
+
+                // Timestamps - FIXED FOR MYSQL
+                entity.Property(e => e.CreatedAt)
+                    .HasDefaultValueSql("CURRENT_TIMESTAMP(6)");
+
+                entity.Property(e => e.UpdatedAt)
+                    .HasDefaultValueSql("CURRENT_TIMESTAMP(6) ON UPDATE CURRENT_TIMESTAMP(6)");
+
+                // Indexes for performance
+                entity.HasIndex(e => e.CompanyName);
+                entity.HasIndex(e => new { e.Latitude, e.Longitude });
             });
         }
     }
